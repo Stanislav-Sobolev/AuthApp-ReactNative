@@ -1,6 +1,7 @@
 // App.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import styles from './styles';
 
@@ -10,12 +11,27 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [usernameLogin, setUsernameLogin] = useState('');
   const [passwordLogin, setPasswordLogin] = useState('');
+  const [token, setToken] = useState(null);
   const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkToken = async () => {
+      const storedToken = await AsyncStorage.getItem('token');
+      if (storedToken) {
+        setToken(storedToken);
+        setLoggedIn(true);
+      }
+    };
+
+    checkToken();
+  }, []);
 
   const handleRegistration = async () => {
     try {
       const response = await axios.post('http://192.168.55.181:3000/signup', { username, name, password });
-      console.log('Registration successful:', response.data);
+      await AsyncStorage.setItem('token', response.data.token);
+
+      setToken(response.data.token);
       setLoggedIn(true);
     } catch (error) {
       console.error('Registration failed:', error.response.data.error);
@@ -25,7 +41,9 @@ export default function App() {
   const handleLogin = async () => {
     try {
       const response = await axios.post('http://192.168.55.181:3000/login', { usernameLogin, passwordLogin });
-      console.log('Login successful:', response.data);
+      await AsyncStorage.setItem('token', response.data.token);
+
+      setToken(response.data.token);
       setLoggedIn(true);
     } catch (error) {
       console.error('Login failed:', error.response.data.error);
@@ -33,6 +51,8 @@ export default function App() {
   };
 
   const handleLogOut = async () => {
+    await AsyncStorage.removeItem('token');
+    setToken(null);
     setLoggedIn(false);
   };
 
